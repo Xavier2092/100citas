@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>100 Citas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f5f5f5;
+            margin: 0;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin: 20px 0;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 10px 0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+
+        .task-number {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .task-info {
+            flex-grow: 1;
+        }
+
+        .task-info .task-name {
+            font-size: 16px;
+        }
+
+        .edit-buttons {
+            margin-top: 10px;
+            text-align: right;
+        }
+
+        .edit-buttons button {
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        button.delete {
+            background-color: #FF5555;
+        }
+
+        input[type="checkbox"] {
+            margin-right: 5px;
+        }
+
+        .completed {
+            background-color: #d4edda;
+        }
+
+        .edit-date {
+            font-size: 12px;
+            color: #777;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            li {
+                padding: 8px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>100 Citas:</h1>
+        <ul id="todoList">
+        </ul>
+        <input type="text" id="newTask" placeholder="Nueva tarea">
+        <div>
+            <label for="editor">Editor:</label>
+            <input type="radio" id="xavier" name="editor" value="Xavier" checked>Xavier
+            <input type="radio" id="genesis" name="editor" value="Génesis">Génesis
+        </div>
+        <button id="addTask">Agregar Tarea</button>
+    </div>
+
+    <script>
+        const todoList = document.getElementById('todoList');
+        const newTask = document.getElementById('newTask');
+        const xavierRadio = document.getElementById('xavier');
+        const genesisRadio = document.getElementById('genesis');
+        const addTask = document.getElementById('addTask');
+
+        // Cargar tareas desde el localStorage
+        const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+
+        // Limitar la cantidad de tareas a 100
+        while (tasks.length >= 100) {
+            tasks.pop();
+        }
+
+        // Actualizar la lista con las tareas guardadas
+        tasks.forEach((task, index) => createTaskItem(index + 1, task.text, task.editor, task.completed, task.editDate));
+
+        addTask.addEventListener('click', () => {
+            const text = newTask.value;
+            const editor = xavierRadio.checked ? "Xavier" : "Génesis";
+            if (text.trim() !== '') {
+                // Limitar la cantidad de tareas a 100
+                while (tasks.length >= 100) {
+                    tasks.shift();
+                }
+                const newTaskData = { text, editor, completed: false, editDate: getCurrentDate() };
+                tasks.push(newTaskData);
+                createTaskItem(tasks.length, text, editor, false, newTaskData.editDate);
+                newTask.value = '';
+                saveTasks();
+            }
+        });
+
+        function createTaskItem(number, text, editor, completed, editDate) {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <span class="task-number">${number}</span>
+                <div class="task-info">
+                    <span class="task-name">${text}</span>
+                    <span class="edit-date">Editado el: ${editDate}. Por: </span>
+                    <span>${editor}</span>
+                </div>
+                <div class="edit-buttons">
+                    <button class="edit-button">Editar</button>
+                    <button class="delete">Eliminar</button>
+                </div>
+                <input type="checkbox" ${completed ? 'checked' : ''}> Completada
+            `;
+
+            todoList.appendChild(li);
+
+            const editButton = li.querySelector('.edit-button');
+            const taskInfo = li.querySelector('.task-info');
+            taskInfo.style.display = 'block';
+            li.querySelector('.edit-buttons').style.display = 'block';
+            //li.querySelector('.task-name').style.display = 'none';
+
+            editButton.addEventListener('click', () => {
+                taskInfo.style.display = 'none';
+                li.querySelector('.edit-buttons').style.display = 'none';
+                li.querySelector('.task-name').style.display = 'block';
+                li.querySelector('.task-name').style.backgroundcolor = 'red';
+            });
+
+
+            
+
+            li.querySelector('input[type="checkbox"]').addEventListener('change', () => {
+                li.querySelector('.task-name').style.display = 'block';
+                taskInfo.style.display = 'block';
+                li.querySelector('.edit-buttons').style.display = 'block';
+                saveTasks();
+            });
+
+            li.querySelector('.delete').addEventListener('click', () => {
+                todoList.removeChild(li);
+                const taskIndex = Array.from(todoList.children).indexOf(li);
+                tasks.splice(taskIndex, 1);
+                saveTasks();
+                updateNumbers();
+            });
+        }
+
+        function saveTasks() {
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+
+        function updateNumbers() {
+            const taskItems = todoList.querySelectorAll('li');
+            taskItems.forEach((item, index) => {
+                item.querySelector('.task-number').textContent = index + 1;
+            });
+        }
+        function getCurrentDate() {
+            const now = new Date();
+            return `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+        }
+    </script>
+</body>
+</html>
